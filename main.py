@@ -1,0 +1,252 @@
+from aiogram import Router, F, Bot, Dispatcher
+from aiogram.types import Message, FSInputFile, InputSticker
+from aiogram.filters import CommandStart, Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from PIL import Image
+from dotenv import load_dotenv
+from pdf2image import convert_from_path
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+import asyncio
+import logging
+import os
+
+
+
+
+load_dotenv()
+BOT_TOKEN = os.getenv("TOKEN")
+
+bot = Bot(token=BOT_TOKEN)
+
+dp = Dispatcher()
+router = Router()
+
+
+
+def get_main_reply_keyboard():
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="/pdf")],
+            [KeyboardButton(text="/size"), KeyboardButton(text="/sticker")],
+            [KeyboardButton(text="/whatidsticker")]
+        ],
+        resize_keyboard=True
+    )
+    return keyboard
+
+#12312
+class Form(StatesGroup):
+    fromuserphoto = State()
+    firstsize = State()
+    secondsize = State()
+    resultphoto = State()
+    pdf2photo = State()
+    sticker = State()
+    takephotosticker = State()
+    whatidsticker = State()
+    phototaked = State()
+    resized_photo = State()
+
+
+logging.basicConfig(level=logging.INFO)
+
+
+print("Бот включен")
+async def main():
+    dp.include_router(router)
+    await dp.start_polling(bot)
+
+
+@router.message(CommandStart())
+async def start(message: Message):
+    await message.answer("Откройте главное меню взаимодействия с ботом\nс помощью команды\n/menu")
+
+
+@router.message(Command("menu"))
+async def callmenu(message: Message):
+    await message.answer(text="Главное меню открыто",reply_markup=(get_main_reply_keyboard()))
+
+
+@router.message(Command("whatidsticker"))
+async def takestick(message: Message, state: FSMContext):
+    await message.answer("Отправь мне стикер айди которого тебя интересует")
+    await state.set_state(Form.whatidsticker)
+
+
+@router.message(Form.whatidsticker, F.sticker)
+async def givestick(message: Message, state:FSMContext):    
+    await message.answer_sticker(message.sticker.file_id)
+    await message.answer(f"ID этого стикера:\n`{message.sticker.file_id}`", parse_mode="MarkdownV2")
+    await state.clear()
+
+    
+
+
+@router.message(Command("size"))
+async def start(message: Message, state: FSMContext):
+    await message.answer("Я могу изменить размер твоего фото!\n Отправь мне фото которое нужно изменить!")
+    await state.set_state(Form.fromuserphoto)
+
+
+@router.message(Form.fromuserphoto, F.photo)
+async def photo_processs(message: Message, state: FSMContext):
+    await message.answer("А теперь введите ширину фото в пикселях")
+    photo = message.photo[-1]
+    file_id = photo.file_id
+
+
+    file_name = f"photos/{message.from_user.id}.jpg" 
+    await message.bot.download(photo, destination=file_name)   
+    await state.update_data(fromuserphoto=file_name)
+    await state.set_state(Form.firstsize)
+
+
+@router.message(Form.firstsize, F.text)
+async def firstsize(message: Message, state: FSMContext):
+#  await message.answer("Введи Ширину фото в пикселях")
+    if not message.text.isdigit():
+        await message.answer("Введите число в пикселях")
+        return 
+    width = int(message.text)
+    if width > 5000 or width < 10:
+        await message.answer("Размер должен быть от 10 до 5000 пикселей")
+        return
+    await message.answer("А теперь введите высоту фото в пикселях")
+    await state.update_data(width=message.text)
+    await state.set_state(Form.secondsize)
+
+
+@router.message(Form.secondsize, F.text)
+async def secondtsize(message: Message, state: FSMContext):
+    if not message.text.isdigit():
+        await message.answer("Введите число в пикселях")
+        return
+    width = int(message.text)
+    if width > 5000 or width < 10:
+        await message.answer("Размер должен быть от 10 до 5000 пикселей")
+        return
+    await state.update_data(height=message.text)   
+    data = await state.get_data()
+
+    userphoto_original = data.get("fromuserphoto")
+    width = int(data.get("width")) 
+    height = int(data.get("height"))
+    
+
+    fromuserphoto = Image.open(userphoto_original)
+
+    fromuserphoto = fromuserphoto.resize((width,height))
+    photo_resized = f"photos/finallyphoto{message.from_user.id}.jpg"
+    fromuserphoto.save(photo_resized)
+    os.remove(userphoto_original)
+    
+    photo_to_send = FSInputFile(photo_resized)
+
+    await message.answer_photo(photo_to_send, caption="Вот твое фото!")
+    os.remove(photo_resized)
+
+
+@router.message(Command("pdf"))
+async def startpdf(message: Message, state: FSMContext):
+    await message.answer("Пришлите мне свой pdf файл чтобы я его смог конвертировать в фото")
+    await state.set_state(Form.pdf2photo)
+
+
+@router.message(Form.pdf2photo, F.document)
+async def getpdf(message: Message, state: FSMContext):
+    if not message.document.file_name.lower().endswith(".pdf"):
+        await message.answer_sticker("CAACAgIAAxkBAAOvadeOA_uOwAABqbM-yy4NQKkbPgtAAAITgQACuy3ASSzh33Kzo1pwOwQ")
+        return
+    pdffromuser = f"photos/{message.document.file_id}.pdf"
+    await message.bot.download(message.document, destination=pdffromuser)
+    
+    path_to_poppler = r"C:\Users\ctapi\OneDrive\Документи\poppler-25.12.0\Library\bin"
+
+    pages = convert_from_path(pdffromuser, dpi=150, poppler_path=path_to_poppler)
+    for i, page in enumerate(pages):
+        result = f"photos/p_{i}_{message.from_user.id}.jpg"
+        page.save(result, "JPEG")
+        await message.answer_photo(FSInputFile(result))
+        os.remove(result)
+
+    os.remove(pdffromuser)
+
+    await state.clear()
+
+
+@router.message(Command("sticker"))
+async def take_photo(message: Message, state: FSMContext):
+    await message.answer("Отправь мне фото который я должен добавить в стикерпак")
+    await state.set_state(Form.sticker)
+
+
+@router.message(Form.sticker, F.photo)
+async def phototaked(message: Message, state: FSMContext):
+
+    photo = message.photo[-1]
+    file_id = photo.file_id
+    await state.set_state(Form.phototaked)
+   
+    photo_path = f"photos/takedphotoforstick{message.from_user.id}.jpg"
+    await message.bot.download(photo, destination=photo_path)
+      
+    img = Image.open(photo_path)
+
+    new_img = img.resize((512, 512))
+    resized_photo = f"photos/resizedphotostick{message.from_user.id}.webp"
+    new_img.save(resized_photo) 
+    img.close()
+    os.remove(photo_path)
+
+    user_id = message.from_user.id
+
+    bot_obj = await message.bot.get_me()
+
+    pack_name = f"user_{user_id}_stickers_by_{bot_obj.username}"
+    pack_title = f"Pack by {message.from_user.first_name}"
+
+    try:
+        upload = await message.bot.upload_sticker_file(
+            user_id=user_id,
+            sticker=FSInputFile(resized_photo),
+            sticker_format="static"
+        )
+
+        sticker_to_add = InputSticker(
+            sticker=upload.file_id,
+            emoji_list=["😊"],
+            format="static"
+        )
+        try:
+            await message.bot.add_sticker_to_set(
+                user_id=user_id,
+                name=pack_name,
+                sticker=sticker_to_add
+            )
+            await message.answer(f"Стикер добавлен в твой набор!\nhttps://t.me/addstickers/{pack_name}")
+
+        except Exception as e:
+            if "STICKERSET_INVALID" in str(e):
+                await message.bot.create_new_sticker_set(
+                    user_id=user_id,
+                    name=pack_name,
+                    title=pack_title,
+                    stickers=[sticker_to_add],
+                    sticker_format="static"
+                ) 
+                await message.answer(f"🎉 Создан твой первый стикерпак!\nhttps://t.me/addstickers/{pack_name}")
+            else:
+                await message.answer(f"Произошла ошибка: {e}")
+    finally: 
+            
+        if os.path.exists(resized_photo):
+            os.remove(resized_photo)
+        await state.clear()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Бот выключен")
