@@ -244,6 +244,12 @@ async def phototaked(message: Message, state: FSMContext):
             os.remove(resized_photo)
         await state.clear()
 
+
+
+
+
+
+
 if __name__ == "__main__":
     try:
         asyncio.run(main())
