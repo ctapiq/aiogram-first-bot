@@ -19,11 +19,6 @@ if not os.path.exists("photos"):
 load_dotenv()
 BOT_TOKEN = os.getenv("TOKEN")
 
-bot = Bot(token=BOT_TOKEN)
-
-dp = Dispatcher()
-router = Router()
-
 
 
 def get_main_reply_keyboard():
@@ -53,9 +48,12 @@ class Form(StatesGroup):
 
 logging.basicConfig(level=logging.INFO)
 
+router = Router()
 
 print("Бот включен")
 async def main():
+    bot = Bot(token=BOT_TOKEN)
+    dp = Dispatcher()
     dp.include_router(router)
     await dp.start_polling(bot)
 
@@ -68,6 +66,7 @@ async def start(message: Message):
 @router.message(Command("menu"))
 async def callmenu(message: Message):
     await message.answer(text="Главное меню открыто",reply_markup=(get_main_reply_keyboard()))
+
 
 
 @router.message(Command("whatidsticker"))
@@ -163,7 +162,6 @@ async def getpdf(message: Message, state: FSMContext):
     pdffromuser = f"photos/{message.document.file_id}.pdf"
     await message.bot.download(message.document, destination=pdffromuser)
     
- #   path_to_poppler = r"C:\Users\ctapi\OneDrive\Документи\poppler-25.12.0\Library\bin"
 
     pages = convert_from_path(pdffromuser, dpi=150)
     for i, page in enumerate(pages):
