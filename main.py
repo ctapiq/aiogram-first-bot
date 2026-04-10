@@ -12,7 +12,8 @@ import asyncio
 import logging
 import os
 
-
+if not os.path.exists("photos"):
+    os.makedirs("photos")
 
 
 load_dotenv()
@@ -162,9 +163,9 @@ async def getpdf(message: Message, state: FSMContext):
     pdffromuser = f"photos/{message.document.file_id}.pdf"
     await message.bot.download(message.document, destination=pdffromuser)
     
-    path_to_poppler = r"C:\Users\ctapi\OneDrive\Документи\poppler-25.12.0\Library\bin"
+ #   path_to_poppler = r"C:\Users\ctapi\OneDrive\Документи\poppler-25.12.0\Library\bin"
 
-    pages = convert_from_path(pdffromuser, dpi=150, poppler_path=path_to_poppler)
+    pages = convert_from_path(pdffromuser, dpi=150)
     for i, page in enumerate(pages):
         result = f"photos/p_{i}_{message.from_user.id}.jpg"
         page.save(result, "JPEG")
