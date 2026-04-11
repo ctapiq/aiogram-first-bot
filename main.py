@@ -20,13 +20,21 @@ load_dotenv()
 BOT_TOKEN = os.getenv("TOKEN")
 
 
+def get_cancel_keyboard():
+    keyboard = ReplyKeyboardMarkup(
+        keyboard= [
+            [KeyboardButton(text="Отмена")],
+        ]
+    )
+    return keyboard
 
 def get_main_reply_keyboard():
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="/pdf")],
-            [KeyboardButton(text="/size"), KeyboardButton(text="/sticker")],
-            [KeyboardButton(text="/whatidsticker")]
+            
+            [KeyboardButton(text="PDF to JPG(webp)")],[KeyboardButton(text="Узнать айди стикера")],
+            [KeyboardButton(text="Изменить размер фото"), KeyboardButton(text="Получить стикер из фото")],
+            
         ],
         resize_keyboard=True
     )
@@ -50,12 +58,24 @@ logging.basicConfig(level=logging.INFO)
 
 router = Router()
 
+
+
 print("Бот включен")
 async def main():
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
     dp.include_router(router)
     await dp.start_polling(bot)
+
+@router.message()
+async def logger_handler(message: Message, state: FSMContext):
+    user = message.from_user
+    text = message.text or message.caption or "[Медиафайл]"
+    current_state = await state.get_state()
+    print(f"Кто: {user.full_name} (@{user.username}) [ID: {user.id}]")
+    print(f"Текст: {text}")  
+    return False
+
 
 
 @router.message(CommandStart())
@@ -67,9 +87,25 @@ async def start(message: Message):
 async def callmenu(message: Message):
     await message.answer(text="Главное меню открыто",reply_markup=(get_main_reply_keyboard()))
 
+@router.message(Command("cancel"))
+@router.message(F.text == "Отмена")
+async def cancel (message: Message, state: FSMContext):
+    data = await state.get_data()
+    user_photo = data.get("fromuserphoto")
+    if user_photo and os.path.exists(user_photo):
+        try:
+            os.remove(user_photo)
+        except Exception as e:
+            logging.error(f"Ошибка удаления: {e}")
 
+    current_state = await state.get_state()
+    logging.info(f"Действие отменено{message.from_user.id} в состоянии {current_state}")
+
+    await state.clear()
+    await message.answer("Действие отменено.", reply_markup=get_main_reply_keyboard())
 
 @router.message(Command("whatidsticker"))
+@router.message(F.text == "Узнать айди стикера")
 async def takestick(message: Message, state: FSMContext):
     await message.answer("Отправь мне стикер айди которого тебя интересует")
     await state.set_state(Form.whatidsticker)
@@ -78,13 +114,14 @@ async def takestick(message: Message, state: FSMContext):
 @router.message(Form.whatidsticker, F.sticker)
 async def givestick(message: Message, state:FSMContext):    
     await message.answer_sticker(message.sticker.file_id)
-    await message.answer(f"ID этого стикера:\n`{message.sticker.file_id}`", parse_mode="MarkdownV2")
+    await message.answer(f"ID этого стикера:\n`{message.sticker.file_id}`", parse_mode="Markdown")
     await state.clear()
 
     
 
 
 @router.message(Command("size"))
+@router.message(F.text == "Изменить размер фото")
 async def start(message: Message, state: FSMContext):
     await message.answer("Я могу изменить размер твоего фото!\n Отправь мне фото которое нужно изменить!")
     await state.set_state(Form.fromuserphoto)
@@ -92,7 +129,7 @@ async def start(message: Message, state: FSMContext):
 
 @router.message(Form.fromuserphoto, F.photo)
 async def photo_processs(message: Message, state: FSMContext):
-    await message.answer("А теперь введите ширину фото в пикселях")
+    await message.answer("А теперь введите ширину фото в пикселях", reply_markup=get_cancel_keyboard())
     photo = message.photo[-1]
     file_id = photo.file_id
 
@@ -105,7 +142,6 @@ async def photo_processs(message: Message, state: FSMContext):
 
 @router.message(Form.firstsize, F.text)
 async def firstsize(message: Message, state: FSMContext):
-#  await message.answer("Введи Ширину фото в пикселях")
     if not message.text.isdigit():
         await message.answer("Введите число в пикселях")
         return 
@@ -113,7 +149,7 @@ async def firstsize(message: Message, state: FSMContext):
     if width > 5000 or width < 10:
         await message.answer("Размер должен быть от 10 до 5000 пикселей")
         return
-    await message.answer("А теперь введите высоту фото в пикселях")
+    await message.answer("А теперь введите высоту фото в пикселях", reply_markup=get_cancel_keyboard())
     await state.update_data(width=message.text)
     await state.set_state(Form.secondsize)
 
@@ -123,8 +159,8 @@ async def secondtsize(message: Message, state: FSMContext):
     if not message.text.isdigit():
         await message.answer("Введите число в пикселях")
         return
-    width = int(message.text)
-    if width > 5000 or width < 10:
+    height = int(message.text)
+    if height > 5000 or height < 10:
         await message.answer("Размер должен быть от 10 до 5000 пикселей")
         return
     await state.update_data(height=message.text)   
@@ -144,13 +180,16 @@ async def secondtsize(message: Message, state: FSMContext):
     
     photo_to_send = FSInputFile(photo_resized)
 
-    await message.answer_photo(photo_to_send, caption="Вот твое фото!")
+    await message.answer_photo(photo_to_send, caption="Вот твое фото!",
+                               reply_markup=get_main_reply_keyboard())
     os.remove(photo_resized)
 
 
 @router.message(Command("pdf"))
+@router.message(F.text == "PDF to JPG(webp)")
 async def startpdf(message: Message, state: FSMContext):
-    await message.answer("Пришлите мне свой pdf файл чтобы я его смог конвертировать в фото")
+    
+    await message.answer("Пришлите мне свой PDF файл чтобы я его смог конвертировать в фото")
     await state.set_state(Form.pdf2photo)
 
 
@@ -176,6 +215,7 @@ async def getpdf(message: Message, state: FSMContext):
 
 
 @router.message(Command("sticker"))
+@router.message(F.text == "Получить стикер из фото")
 async def take_photo(message: Message, state: FSMContext):
     await message.answer("Отправь мне фото который я должен добавить в стикерпак")
     await state.set_state(Form.sticker)
