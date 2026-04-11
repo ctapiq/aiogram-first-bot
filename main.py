@@ -183,7 +183,7 @@ async def secondtsize(message: Message, state: FSMContext):
     await message.answer_photo(photo_to_send, caption="Вот твое фото!",
                                reply_markup=get_main_reply_keyboard())
     os.remove(photo_resized)
-    await state.clear(
+    await state.clear()
 
 
 @router.message(Command("pdf"))
