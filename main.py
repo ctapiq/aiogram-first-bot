@@ -57,9 +57,6 @@ class Form(StatesGroup):
 logging.basicConfig(level=logging.INFO)
 
 router = Router()
-
-
-
 print("Бот включен")
 async def main():
     bot = Bot(token=BOT_TOKEN)
