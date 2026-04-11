@@ -1,4 +1,4 @@
-from aiogram import Router, F, Bot, Dispatcher
+from aiogram import Router, F, Bot, Dispatcher, types
 from aiogram.types import Message, FSInputFile, InputSticker
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
@@ -11,6 +11,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 import asyncio
 import logging
 import os
+import aiohttp
 
 if not os.path.exists("photos"):
     os.makedirs("photos")
@@ -32,8 +33,9 @@ def get_main_reply_keyboard():
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
             
-            [KeyboardButton(text="PDF to JPG(webp)")],[KeyboardButton(text="Узнать айди стикера")],
+            [KeyboardButton(text="PDF to JPG(webp)"), KeyboardButton(text="Узнать айди стикера")],
             [KeyboardButton(text="Изменить размер фото"), KeyboardButton(text="Получить стикер из фото")],
+            [KeyboardButton(text="Скачать видео из тиктока без водяного знака")],
             
         ],
         resize_keyboard=True
@@ -52,6 +54,7 @@ class Form(StatesGroup):
     whatidsticker = State()
     phototaked = State()
     resized_photo = State()
+    tiktok_video = State()
 
 
 logging.basicConfig(level=logging.INFO)
@@ -103,6 +106,38 @@ async def cancel (message: Message, state: FSMContext):
 
     await state.clear()
     await message.answer("Действие отменено.", reply_markup=get_main_reply_keyboard())
+
+
+@router.message(Command("TikTok"))
+@router.message(F.text == "Скачать видео из тиктока без водяного знака")
+async def start_tiktok(message: Message, state: FSMContext):
+    await message.answer("Отправь мне ссылку на видео",
+                         reply_markup=get_cancel_keyboard())
+    await state.set_state(Form.tiktok_video)
+
+@router.message(Form.tiktok_video, F.text.contains("tiktok.com"))
+async def process_tiktok(message: Message, state: FSMContext):
+    status_msg = await message.answer("Обработка..")
+
+    url = message.text
+    api_url = "https://www.tikwm.com/api/"
+
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(api_url, params={"url": url, "hd": 1}) as response:
+                res_data = await response.json()
+
+                if res_data.get("code") == 0:
+                    video_url = res_data["data"]["play"]
+                    await message.answer_video(video_url, caption="Твое видео готово!")
+                    await status_msg.delete()
+                    await state.clear()
+                else:
+                    await status_msg.edit_text("Не удалось найти видео по ссылке")
+        except Exception as e:
+            logging.error(f"TikTok Error: {e}")
+            await status_msg.edit_text("Произошла ошибка при загрузке")
+
 
 @router.message(Command("whatidsticker"))
 @router.message(F.text == "Узнать айди стикера")
