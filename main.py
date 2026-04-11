@@ -62,16 +62,19 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
     dp.include_router(router)
+
+    await bot.delete_webhook(drop_pending_updates=True)
+
     await dp.start_polling(bot)
 
-@router.message()
-async def logger_handler(message: Message, state: FSMContext):
-    user = message.from_user
-    text = message.text or message.caption or "[Медиафайл]"
-    current_state = await state.get_state()
-    print(f"Кто: {user.full_name} (@{user.username}) [ID: {user.id}]")
-    print(f"Текст: {text}")  
-    return False
+# @router.message()
+# async def logger_handler(message: Message, state: FSMContext):
+#     user = message.from_user
+#     text = message.text or message.caption or "[Медиафайл]"
+#     current_state = await state.get_state()
+#     print(f"Кто: {user.full_name} (@{user.username}) [ID: {user.id}]")
+#     print(f"Текст: {text}")  
+#     return False
 
 
 
@@ -119,7 +122,7 @@ async def givestick(message: Message, state:FSMContext):
 
 @router.message(Command("size"))
 @router.message(F.text == "Изменить размер фото")
-async def start(message: Message, state: FSMContext):
+async def start_resize(message: Message, state: FSMContext):
     await message.answer("Я могу изменить размер твоего фото!\n Отправь мне фото которое нужно изменить!")
     await state.set_state(Form.fromuserphoto)
 
@@ -180,6 +183,7 @@ async def secondtsize(message: Message, state: FSMContext):
     await message.answer_photo(photo_to_send, caption="Вот твое фото!",
                                reply_markup=get_main_reply_keyboard())
     os.remove(photo_resized)
+    await state.clear(
 
 
 @router.message(Command("pdf"))
