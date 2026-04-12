@@ -62,6 +62,7 @@ async def cancel (message: Message, state: FSMContext):
 
     await state.clear()
     await message.answer("Действие отменено.", reply_markup=get_main_reply_keyboard())
+#трактор виганяю
 
 
 @router.message(Command("TikTok"))
