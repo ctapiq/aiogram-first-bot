@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import asyncio
 import logging
 import os
+from handlers.handler import router
 
 
 if not os.path.exists("photos"):
