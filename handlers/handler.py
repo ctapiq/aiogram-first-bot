@@ -10,7 +10,7 @@ import asyncio
 import logging
 import os
 import aiohttp
-from keyboards import get_cancel_keyboard, get_main_reply_keyboard
+from .keyboards import get_cancel_keyboard, get_main_reply_keyboard
 
 #12312
 class Form(StatesGroup):
