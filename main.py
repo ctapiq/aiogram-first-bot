@@ -17,7 +17,7 @@ BOT_TOKEN = os.getenv("TOKEN")
 
 logging.basicConfig(level=logging.INFO)
 
-print("Бот включен")
+print("All hail Lelouch!")
 async def main():
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
@@ -34,4 +34,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("Бот выключен")
+        print("All hail Lelouch!")

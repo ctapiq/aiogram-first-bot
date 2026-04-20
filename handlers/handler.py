@@ -3,9 +3,9 @@ from aiogram.types import Message, FSInputFile, InputSticker
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-
 from pdf2image import convert_from_path
 from PIL import Image
+
 import asyncio
 import logging
 import os
@@ -28,18 +28,17 @@ class Form(StatesGroup):
 
 
 logging.basicConfig(level=logging.INFO)
-
-
-
-
-
-
 router = Router()
 
 
 @router.message(CommandStart())
 async def start(message: Message):
     await message.answer("Откройте главное меню взаимодействия с ботом\nс помощью команды\n/menu")
+
+
+@router.message(Command("****"))
+async def secret(message: Message): 
+    await message.answer_sticker("CAACAgIAAxkBAAIDZWnf1UOId_3MRKoFmAABOr8DyIBHbwAC10UAAi59aUie_2DiiXvV3TsE")
 
 
 @router.message(Command("menu"))
@@ -63,7 +62,6 @@ async def cancel (message: Message, state: FSMContext):
     await state.clear()
     await message.answer("Действие отменено.", reply_markup=get_main_reply_keyboard())
 #трактор виганяю
-
 
 @router.message(Command("TikTok"))
 @router.message(F.text == "Скачать видео из тиктока без водяного знака")
@@ -108,8 +106,6 @@ async def givestick(message: Message, state:FSMContext):
     await message.answer_sticker(message.sticker.file_id)
     await message.answer(f"ID этого стикера:\n`{message.sticker.file_id}`", parse_mode="Markdown")
     await state.clear()
-
-    
 
 
 @router.message(Command("size"))
