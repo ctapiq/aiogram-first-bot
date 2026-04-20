@@ -37,6 +37,7 @@ async def start(message: Message):
 
 
 @router.message(Command("****"))
+@router.message(F.text == "****")
 async def secret(message: Message): 
     await message.answer_sticker("CAACAgIAAxkBAAIDZWnf1UOId_3MRKoFmAABOr8DyIBHbwAC10UAAi59aUie_2DiiXvV3TsE")
 

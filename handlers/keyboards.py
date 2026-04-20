@@ -28,7 +28,7 @@ def get_main_reply_keyboard():
             [KeyboardButton(text="PDF to JPG(webp)"), KeyboardButton(text="Узнать айди стикера")],
             [KeyboardButton(text="Изменить размер фото"), KeyboardButton(text="Получить стикер из фото")],
             [KeyboardButton(text="Скачать видео из тиктока без водяного знака")],
-            [KeyboardButton(text="/****")],
+            [KeyboardButton(text="****")],
             
         ],
         resize_keyboard=True
