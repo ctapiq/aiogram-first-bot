@@ -56,7 +56,7 @@ async def secret(message: Message):
 @router.message(F.text == "QR код")
 async def start_qr(message: Message, state: FSMContext):
     await message.answer("Отправь мне сообщение которое я должен закодировать в QR код")
-    await Form.qr_code.set()
+    await state.set_state(Form.qr_code)
 
 @router.message(Form.qr_code)
 async def generate_qr(message: Message, state: FSMContext):
@@ -67,7 +67,7 @@ async def generate_qr(message: Message, state: FSMContext):
     try:
         qr = segno.make(text)
         qr_path = f"photos/qr_{message.from_user.id}.png"
-        qr.save(qr_path)
+        qr.save(qr_path, scale=10)
         await message.answer_photo(FSInputFile(qr_path), caption="Вот твой QR код!", reply_markup=get_main_reply_keyboard())
         os.remove(qr_path)
         await state.clear()
