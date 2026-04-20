@@ -60,15 +60,20 @@ async def start_qr(message: Message, state: FSMContext):
 
 @router.message(Form.qr_code)
 async def generate_qr(message: Message, state: FSMContext):
-    qr_data = message.text
-    qr = segno.make(qr_data)
-    qr_path = f"photos/qr_{message.from_user.id}.png"
-    qr.save(qr_path)
-
-    await message.answer_photo(FSInputFile(qr_path), caption="Вот твой QR код!", reply_markup=get_main_reply_keyboard())
-    os.remove(qr_path)
-    await state.clear()
-
+    text = message.text.strip()
+    if not message.text:
+        await message.answer_sticker("CAACAgQAAxkBAAIFPWnmUG843bXLDKaOHOJgP92RRzoXAAIsFgAC19oBUYAN4p-dP1T9OwQ")
+        return 
+    try:
+        qr = segno.make(text)
+        qr_path = f"photos/qr_{message.from_user.id}.png"
+        qr.save(qr_path)
+        await message.answer_photo(FSInputFile(qr_path), caption="Вот твой QR код!", reply_markup=get_main_reply_keyboard())
+        os.remove(qr_path)
+        await state.clear()
+    except Exception as e:
+        await message.answer(f"Произошла ошибка при генерации QR кода: {e}")
+        logging.error(f"QR Code Generation Error: {e}")
 
 
 @router.message(Command("menu"))
