@@ -28,8 +28,16 @@ def get_main_reply_keyboard():
             [KeyboardButton(text="PDF to JPG(webp)"), KeyboardButton(text="Узнать айди стикера")],
             [KeyboardButton(text="Изменить размер фото"), KeyboardButton(text="Получить стикер из фото")],
             [KeyboardButton(text="Скачать видео из тиктока без водяного знака")],
-            [KeyboardButton(text="****")],
-            
+            [KeyboardButton(text="****"), KeyboardButton(text="Вторая страница -->")],  
+        ],
+        resize_keyboard=True
+    )
+    return keyboard
+def get_second_reply_keyboard():
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="QR код")],
+            [KeyboardButton(text="Главное меню <--")],
         ],
         resize_keyboard=True
     )

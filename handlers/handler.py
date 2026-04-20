@@ -1,3 +1,4 @@
+
 from aiogram import Router, F, Bot, Dispatcher, types
 from aiogram.types import Message, FSInputFile, InputSticker
 from aiogram.filters import CommandStart, Command
@@ -5,12 +6,14 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from pdf2image import convert_from_path
 from PIL import Image
+import segno
+
 
 import asyncio
 import logging
 import os
 import aiohttp
-from .keyboards import get_cancel_keyboard, get_main_reply_keyboard
+from .keyboards import get_cancel_keyboard, get_main_reply_keyboard, get_second_reply_keyboard
 
 #12312
 class Form(StatesGroup):
@@ -25,6 +28,7 @@ class Form(StatesGroup):
     phototaked = State()
     resized_photo = State()
     tiktok_video = State()
+    qr_code = State()
 
 
 logging.basicConfig(level=logging.INFO)
@@ -48,9 +52,37 @@ async def secret(message: Message):
     await message.answer("All hail Lelouch!")
 
 
+@router.message(Command("qr-code"))
+@router.message(F.text == "QR код")
+async def start_qr(message: Message, state: FSMContext):
+    await message.answer("Отправь мне сообщение которое я должен закодировать в QR код")
+    await Form.qr_code.set()
+
+@router.message(Form.qr_code)
+async def generate_qr(message: Message, state: FSMContext):
+    qr_data = message.text
+    qr = segno.make(qr_data)
+    qr_path = f"photos/qr_{message.from_user.id}.png"
+    qr.save(qr_path)
+
+    await message.answer_photo(FSInputFile(qr_path), caption="Вот твой QR код!", reply_markup=get_main_reply_keyboard())
+    os.remove(qr_path)
+    await state.clear()
+
+
+
 @router.message(Command("menu"))
 async def callmenu(message: Message):
     await message.answer(text="Главное меню открыто",reply_markup=(get_main_reply_keyboard()))
+
+@router.message(F.text == "Вторая страница -->")
+async def second_page(message: Message):
+    await message.answer("Вторая страница меню", reply_markup=get_second_reply_keyboard())
+
+@router.message(F.text == "Главное меню <--")
+async def main_menu(message: Message):
+    await message.answer("Главное меню", reply_markup=get_main_reply_keyboard())
+
 
 @router.message(Command("cancel"))
 @router.message(F.text == "Отмена")
