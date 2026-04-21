@@ -332,8 +332,3 @@ async def phototaked(message: Message, state: FSMContext):
         if os.path.exists(resized_photo):
             os.remove(resized_photo)
         await state.clear()
-
-
-@router.message()
-async def unknown_message(message: Message):
-    await message.answer("Я не понимаю эту команду. Используйте /menu для открытия главного меню.")
