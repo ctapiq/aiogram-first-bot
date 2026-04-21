@@ -73,7 +73,9 @@ async def start_qr(message: Message, state: FSMContext):
 async def generate_qr(message: Message, state: FSMContext):
     text = message.text.strip()
     if message.text("Главное меню <--"):
-        return None
+        await message.answer("Главное меню", reply_markup=get_main_reply_keyboard())
+        await state.clear()
+        return
     if not message.text:
         await message.answer_sticker("CAACAgQAAxkBAAIFPWnmUG843bXLDKaOHOJgP92RRzoXAAIsFgAC19oBUYAN4p-dP1T9OwQ")
         return 
