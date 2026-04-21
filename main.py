@@ -9,6 +9,8 @@ from handlers.handler import router
 if not os.path.exists("photos"):
     os.makedirs("photos")
 
+if not os.path.exists("videos"):
+    os.makedirs("videos")
 
 load_dotenv()
 BOT_TOKEN = os.getenv("TOKEN")

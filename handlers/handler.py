@@ -7,6 +7,8 @@ from aiogram.fsm.state import State, StatesGroup
 from pdf2image import convert_from_path
 from PIL import Image
 import segno
+import ffmpeg
+import os
 
 
 import asyncio
@@ -29,6 +31,7 @@ class Form(StatesGroup):
     resized_photo = State()
     tiktok_video = State()
     qr_code = State()
+    video_circle = State()
 
 
 logging.basicConfig(level=logging.INFO)
@@ -40,9 +43,17 @@ async def start(message: Message):
     await message.answer("Откройте главное меню взаимодействия с ботом\nс помощью команды\n/menu")
 
 
+@router.message(Command("circle"))
+async def circle_video(message: Message, state: FSMContext):
+    await message.answer("Отправь мне видео которое я должен преобразовать в кружок")
+    await state.set_state(Form.video_circle)
 
-
-
+@router.message(Form.video_circle, F.video)
+async def process_circle_video(message: Message, state: FSMContext):
+    video = message.video
+    file_id = video.file_id
+    video_path = f"videos/{message.from_user.id}.mp4"
+    await message.bot.download(video, destination=video_path)
 
 
 @router.message(Command("****"))
@@ -61,6 +72,8 @@ async def start_qr(message: Message, state: FSMContext):
 @router.message(Form.qr_code)
 async def generate_qr(message: Message, state: FSMContext):
     text = message.text.strip()
+    if message.text("Главное меню <--"):
+        return None
     if not message.text:
         await message.answer_sticker("CAACAgQAAxkBAAIFPWnmUG843bXLDKaOHOJgP92RRzoXAAIsFgAC19oBUYAN4p-dP1T9OwQ")
         return 
@@ -72,6 +85,7 @@ async def generate_qr(message: Message, state: FSMContext):
         os.remove(qr_path)
         await state.clear()
     except Exception as e:
+
         await message.answer(f"Произошла ошибка при генерации QR кода: {e}")
         logging.error(f"QR Code Generation Error: {e}")
 
@@ -222,7 +236,7 @@ async def secondtsize(message: Message, state: FSMContext):
 @router.message(F.text == "PDF to JPG(webp)")
 async def startpdf(message: Message, state: FSMContext):
     
-    await message.answer("Пришлите мне свой PDF файл чтобы я его смог конвертировать в фото")
+    await message.answer("Пришлите мне свой PDF файл чтобы я смог его конвертировать в фото")
     await state.set_state(Form.pdf2photo)
 
 
